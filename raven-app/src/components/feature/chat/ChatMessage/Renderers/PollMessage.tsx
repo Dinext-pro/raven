@@ -89,28 +89,29 @@ const PollResults = ({ data }: { data: Poll }) => {
 
 const PollOption = ({ data, option }: { data: Poll, option: RavenPollOption }) => {
 
-    const getPercentage = (votes: number) => {
-        if (data.poll.is_multi_choice) {
-            const totalVotes = data.poll.options.reduce((acc, opt) => acc + (opt.votes ?? 0), 0)
-            return (votes / totalVotes) * 100
-        } else return (votes / data.poll.total_votes) * 100
-    }
-
     // State to track whether the animation should be triggered
     const [triggerAnimation, setTriggerAnimation] = useState<boolean>(false)
 
     // Use useEffect to trigger animation after the component is mounted
     useEffect(() => {
         setTriggerAnimation(true)
-    }, [])
+    }, [data])
 
     const isCurrentUserVote = useMemo(() => {
         return data.current_user_votes.some(vote => vote.option === option.name)
     }, [data.current_user_votes, option.name])
 
     const percentage = useMemo(() => {
+
+        const getPercentage = (votes: number) => {
+            if (data.poll.is_multi_choice) {
+                const totalVotes = data.poll.options.reduce((acc, opt) => acc + (opt.votes ?? 0), 0)
+                return (votes / totalVotes) * 100
+            } else return (votes / data.poll.total_votes) * 100
+        }
+
         return getPercentage(option.votes ?? 0)
-    }, [option.votes])
+    }, [option.votes, data])
 
     const width = `${percentage}%`
 
