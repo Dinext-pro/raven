@@ -7,8 +7,9 @@ import { useFrappeDocumentEventListener, useFrappeGetCall, useFrappePostCall } f
 import { RavenPoll } from "@/types/RavenMessaging/RavenPoll"
 import { ErrorBanner } from "@/components/layout/AlertBanner"
 import { RavenPollOption } from "@/types/RavenMessaging/RavenPollOption"
-import { useToast } from "@/hooks/useToast"
+
 import { ViewPollVotes } from "@/components/feature/polls/ViewPollVotes"
+import { toast } from "sonner"
 
 interface PollMessageBlockProps extends BoxProps {
     message: PollMessage,
@@ -89,28 +90,29 @@ const PollResults = ({ data }: { data: Poll }) => {
 
 const PollOption = ({ data, option }: { data: Poll, option: RavenPollOption }) => {
 
-    const getPercentage = (votes: number) => {
-        if (data.poll.is_multi_choice) {
-            const totalVotes = data.poll.options.reduce((acc, opt) => acc + (opt.votes ?? 0), 0)
-            return (votes / totalVotes) * 100
-        } else return (votes / data.poll.total_votes) * 100
-    }
-
     // State to track whether the animation should be triggered
     const [triggerAnimation, setTriggerAnimation] = useState<boolean>(false)
 
     // Use useEffect to trigger animation after the component is mounted
     useEffect(() => {
         setTriggerAnimation(true)
-    }, [])
+    }, [data])
 
     const isCurrentUserVote = useMemo(() => {
         return data.current_user_votes.some(vote => vote.option === option.name)
     }, [data.current_user_votes, option.name])
 
     const percentage = useMemo(() => {
+
+        const getPercentage = (votes: number) => {
+            if (data.poll.is_multi_choice) {
+                const totalVotes = data.poll.options.reduce((acc, opt) => acc + (opt.votes ?? 0), 0)
+                return (votes / totalVotes) * 100
+            } else return (votes / data.poll.total_votes) * 100
+        }
+
         return getPercentage(option.votes ?? 0)
-    }, [option.votes])
+    }, [option.votes, data])
 
     const width = `${percentage}%`
 
@@ -135,17 +137,12 @@ const PollOption = ({ data, option }: { data: Poll, option: RavenPollOption }) =
 const SingleChoicePoll = ({ data, messageID }: { data: Poll, messageID: string }) => {
 
     const { call } = useFrappePostCall('raven.api.raven_poll.add_vote')
-    const { toast } = useToast()
     const onVoteSubmit = async (option: RavenPollOption) => {
         return call({
             'message_id': messageID,
             'option_id': option.name
         }).then(() => {
-            toast({
-                title: "Your vote has been submitted!",
-                variant: 'success',
-                duration: 800
-            })
+            toast.success('Your vote has been submitted!')
         })
     }
 
@@ -168,7 +165,6 @@ const SingleChoicePoll = ({ data, messageID }: { data: Poll, messageID: string }
 const MultiChoicePoll = ({ data, messageID }: { data: Poll, messageID: string }) => {
 
     const [selectedOptions, setSelectedOptions] = useState<string[]>([])
-    const { toast } = useToast()
 
     const handleCheckboxChange = (name: string, value: boolean | string) => {
         if (value) {
@@ -184,11 +180,7 @@ const MultiChoicePoll = ({ data, messageID }: { data: Poll, messageID: string })
             'message_id': messageID,
             'option_id': selectedOptions
         }).then(() => {
-            toast({
-                title: "Your vote has been submitted!",
-                variant: 'success',
-                duration: 800
-            })
+            toast.success('Your vote has been submitted!')
         })
     }
 
