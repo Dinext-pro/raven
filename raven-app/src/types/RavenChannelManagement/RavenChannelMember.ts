@@ -18,4 +18,6 @@ export interface RavenChannelMember{
 	is_admin?: 0 | 1
 	/**	Last Visit : Datetime	*/
 	last_visit: string
+	/**	Allow notifications : Check	*/
+	allow_notifications?: 0 | 1
 }
