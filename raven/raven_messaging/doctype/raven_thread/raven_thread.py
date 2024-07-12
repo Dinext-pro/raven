@@ -13,9 +13,11 @@ class RavenThread(Document):
 
 	if TYPE_CHECKING:
 		from frappe.types import DF
+		from raven.raven_messaging.doctype.raven_thread_message.raven_thread_message import RavenThreadMessage
 		from raven.raven_messaging.doctype.raven_thread_participant.raven_thread_participant import RavenThreadParticipant
 
 		channel_id: DF.Link
+		messages: DF.Table[RavenThreadMessage]
 		participants: DF.Table[RavenThreadParticipant]
 		thread_message_id: DF.Link
 	# end: auto-generated types
