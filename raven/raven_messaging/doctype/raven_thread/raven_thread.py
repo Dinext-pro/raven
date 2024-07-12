@@ -18,7 +18,7 @@ class RavenThread(Document):
 		channel_id: DF.Link
 		participants: DF.Table[RavenThreadParticipants]
 		thread_message: DF.Link
-		title: DF.LongText
+		title: DF.LongText | None
 	# end: auto-generated types
 
 	pass
