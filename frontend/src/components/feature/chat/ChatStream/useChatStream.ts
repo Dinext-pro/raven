@@ -6,7 +6,7 @@ import { getDateObject } from '@/utils/dateConversions/utils'
 import { useDebounce } from '@/hooks/useDebounce'
 import { UserContext } from '@/utils/auth/UserProvider'
 
-interface GetMessagesResponse {
+export interface GetMessagesResponse {
     message: {
         messages: Message[],
         has_old_messages: boolean
@@ -14,7 +14,7 @@ interface GetMessagesResponse {
     }
 }
 
-type MessageDateBlock = Message | {
+export type MessageDateBlock = Message | {
     /**  */
     creation: string
     message_type: 'date',
@@ -25,7 +25,7 @@ type MessageDateBlock = Message | {
  */
 const useChatStream = (scrollRef: MutableRefObject<HTMLDivElement | null>) => {
 
-    const { channelID, threadID } = useParams()
+    const { channelID } = useParams()
 
     const location = useLocation()
     const navigate = useNavigate()
@@ -69,10 +69,10 @@ const useChatStream = (scrollRef: MutableRefObject<HTMLDivElement | null>) => {
     const latestMessagesLoaded = useRef(false)
 
     const { data, isLoading, error, mutate } = useFrappeGetCall<GetMessagesResponse>('raven.api.chat_stream.get_messages', {
-        'channel_id': channelID ?? threadID,
+        'channel_id': channelID,
         'base_message': state?.baseMessage ? state.baseMessage : undefined,
-        'is_thread': threadID ? true : false
-    }, { path: `get_messages_for_channel_${channelID ?? threadID}`, baseMessage: state?.baseMessage }, {
+        'is_thread': 0
+    }, { path: `get_messages_for_channel_${channelID}`, baseMessage: state?.baseMessage }, {
         revalidateOnFocus: false,
         onSuccess: (data) => {
             if (!highlightedMessage) {
