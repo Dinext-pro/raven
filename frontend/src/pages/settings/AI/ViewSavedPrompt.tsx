@@ -24,12 +24,12 @@ const ViewSavedPrompt = (props: Props) => {
         <PageContainer>
             <ErrorBanner error={error} />
             {isLoading && <FullPageLoader className="h-64" />}
-            {data && <ViewBotContent data={data} />}
+            {data && <ViewSavedPromptContent data={data} />}
         </PageContainer>
     )
 }
 
-const ViewBotContent = ({ data }: { data: RavenBotAIPrompt }) => {
+const ViewSavedPromptContent = ({ data }: { data: RavenBotAIPrompt }) => {
 
     const { updateDoc, loading, error } = useFrappeUpdateDoc<RavenBotAIPrompt>()
 
