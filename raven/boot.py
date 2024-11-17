@@ -21,5 +21,4 @@ def boot_session(bootinfo):
 	else:
 		bootinfo.tenor_api_key = "REDACTED"  # should we remove this?
 
-	if chat_style:
-		bootinfo.chat_style = chat_style
+	bootinfo.chat_style = chat_style if chat_style else "Simple"
