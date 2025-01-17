@@ -7,7 +7,7 @@ import { SearchInput } from '@components/nativewindui/SearchInput';
 import { Text } from '@components/nativewindui/Text';
 import ChevronDownIcon from '@assets/icons/ChevronDownIcon.svg';
 
-export default function CreateChannel() {
+export default function BrowseChannels() {
 
     const { colors } = useColorScheme()
 
