@@ -1,18 +1,22 @@
 import { Button, ButtonProps } from "@components/nativewindui/Button"
-import FileIcon from "@assets/icons/FileIcon.svg"
+import AddFileIcon from "@assets/icons/AddFileIcon.svg"
 import { useColorScheme } from "@hooks/useColorScheme"
 import { SvgProps } from "react-native-svg"
 import * as DocumentPicker from 'expo-document-picker'
 import { CustomFile } from "@raven/types/common/File"
+import { Text } from '@components/nativewindui/Text'
+import { TextProps } from "react-native"
 
 interface FilePickerButtonProps {
     buttonProps?: ButtonProps
     icon?: React.ReactNode
     iconProps?: SvgProps
+    label?: string
+    labelProps?: TextProps
     onPick: (files: CustomFile[]) => void
 }
 
-const FilePickerButton = ({ buttonProps, iconProps, icon, onPick }: FilePickerButtonProps) => {
+const FilePickerButton = ({ buttonProps, iconProps, icon, label, labelProps, onPick }: FilePickerButtonProps) => {
     const { colors } = useColorScheme()
 
     const pickDocument = async () => {
@@ -42,8 +46,9 @@ const FilePickerButton = ({ buttonProps, iconProps, icon, onPick }: FilePickerBu
     }
 
     return (
-        <Button variant="plain" size="icon" onPress={pickDocument} {...buttonProps} >
-            {icon ?? <FileIcon height={20} width={20} color={colors.icon} {...iconProps} />}
+        <Button variant="plain" size={label ? "none" : "icon"} onPress={pickDocument} {...buttonProps} >
+            {icon ?? <AddFileIcon height={20} width={20} color={colors.icon} {...iconProps} />}
+            {label && <Text className=" text-sm text-foreground" {...labelProps}>{label}</Text>}
         </Button>
     )
 }
