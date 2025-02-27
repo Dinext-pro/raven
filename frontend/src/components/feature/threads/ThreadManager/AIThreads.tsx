@@ -5,6 +5,9 @@ import ThreadsList from './ThreadsList'
 
 type Props = {}
 
+/**
+ * Component for displaying AI threads - these are all DMs with the AI
+ */
 const AIThreads = (props: Props) => {
     const [search, setSearch] = useState('')
 
