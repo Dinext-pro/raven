@@ -42,12 +42,14 @@ web-and-native-chat:
     SEMGREP_ENABLE_VERSION_CHECK: "0"
     SEMGREP_SETTINGS_FILE: "$CI_PROJECT_DIR/.semgrep-settings.yml"
   before_script:
-    # Keep rule fixtures outside the app scan; use the exact locally reviewed rules.
+    # Keep fixtures outside the app scan and stable IDs for existing qualified nosem.
     - FRAPPE_RULES_DIR="$(mktemp -d)" || exit 70
     - export FRAPPE_RULES_DIR
     - git -C "$FRAPPE_RULES_DIR" init || exit 70
     - git -C "$FRAPPE_RULES_DIR" fetch --depth=1 https://github.com/frappe/semgrep-rules.git 81a6e3d47a328249e8ddf04c586e493dd5553002 || exit 70
     - git -C "$FRAPPE_RULES_DIR" checkout --detach FETCH_HEAD || exit 70
+    - test ! -e frappe-semgrep-rules && test ! -L frappe-semgrep-rules || exit 70
+    - ln -s "$FRAPPE_RULES_DIR" frappe-semgrep-rules || exit 70
     - mkdir -p ci-reports || exit 70
   artifacts:
     when: always
@@ -59,7 +61,7 @@ semgrep-changed-code:
   extends: .frappe-semgrep
   script:
     - test -n "$CI_MERGE_REQUEST_DIFF_BASE_SHA"
-    - semgrep scan --config "$FRAPPE_RULES_DIR/rules" --baseline-commit "$CI_MERGE_REQUEST_DIFF_BASE_SHA" --metrics=off --disable-version-check --error --strict --json --output ci-reports/semgrep-changed.json .
+    - semgrep scan --config frappe-semgrep-rules/rules --baseline-commit "$CI_MERGE_REQUEST_DIFF_BASE_SHA" --metrics=off --disable-version-check --error --strict --json --output ci-reports/semgrep-changed.json .
     - |
       python3 - <<'PY'
       import csv
@@ -78,4 +80,4 @@ semgrep-full-report:
   allow_failure:
     exit_codes: [1, 3]
   script:
-    - semgrep scan --config "$FRAPPE_RULES_DIR/rules" --metrics=off --disable-version-check --error --strict --json --output ci-reports/semgrep-full.json .
+    - semgrep scan --config frappe-semgrep-rules/rules --metrics=off --disable-version-check --error --strict --json --output ci-reports/semgrep-full.json .
