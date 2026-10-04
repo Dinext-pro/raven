@@ -56,7 +56,7 @@ const MessageHeader = ({ message, user }) => {
     if (message.is_continuation) return null
     return <div className='raven-message-item-header'>
         <span className='raven-message-item-header-name'>{user?.full_name}</span>
-        <span className='raven-message-item-header-time'>{moment(message.creation, frappe.defaultDatetimeFormat).format('HH:mm A')}</span>
+        <span className='raven-message-item-header-time'>{moment(message.creation, frappe.defaultDatetimeFormat).format(frappe.boot.lang === 'ru' ? 'HH:mm' : 'HH:mm A')}</span>
     </div>
 }
 

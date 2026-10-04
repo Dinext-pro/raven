@@ -1,0 +1,83 @@
+# Validation only: no release, deployment, publishing, or privileged services.
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - when: never
+
+stages:
+  - validate
+
+default:
+  interruptible: true
+  tags:
+    - dinext
+    - validation
+    - docker
+
+variables:
+  GIT_DEPTH: "0"
+
+web-and-native-chat:
+  stage: validate
+  image: node:22-bookworm
+  script:
+    - yarn install --frozen-lockfile --non-interactive
+    - mkdir -p ci-reports
+    - yarn --cwd apps/web test src/lib/language.test.ts --reporter=default --reporter=junit --outputFile=../../ci-reports/vitest.xml
+    - yarn build
+    - ./node_modules/.bin/esbuild raven/public/js/raven_chat/raven_chat.bundle.jsx --bundle --format=iife --platform=browser --target=es2017 --outfile=ci-reports/raven_chat.js
+  artifacts:
+    when: always
+    expire_in: 1 week
+    reports:
+      junit: ci-reports/vitest.xml
+
+.frappe-semgrep:
+  stage: validate
+  image:
+    name: semgrep/semgrep:1.179.0
+    entrypoint: [""]
+  variables:
+    SEMGREP_SEND_METRICS: "off"
+    SEMGREP_ENABLE_VERSION_CHECK: "0"
+    SEMGREP_SETTINGS_FILE: "$CI_PROJECT_DIR/.semgrep-settings.yml"
+  before_script:
+    # Keep fixtures outside the app scan and stable IDs for existing qualified nosem.
+    - FRAPPE_RULES_DIR="$(mktemp -d)" || exit 70
+    - export FRAPPE_RULES_DIR
+    - git -C "$FRAPPE_RULES_DIR" init || exit 70
+    - git -C "$FRAPPE_RULES_DIR" fetch --depth=1 https://github.com/frappe/semgrep-rules.git 81a6e3d47a328249e8ddf04c586e493dd5553002 || exit 70
+    - git -C "$FRAPPE_RULES_DIR" checkout --detach FETCH_HEAD || exit 70
+    - test ! -e frappe-semgrep-rules && test ! -L frappe-semgrep-rules || exit 70
+    - ln -s "$FRAPPE_RULES_DIR" frappe-semgrep-rules || exit 70
+    - mkdir -p ci-reports || exit 70
+  artifacts:
+    when: always
+    expire_in: 1 week
+    paths:
+      - ci-reports/semgrep-*.json
+
+semgrep-changed-code:
+  extends: .frappe-semgrep
+  script:
+    - test -n "$CI_MERGE_REQUEST_DIFF_BASE_SHA"
+    - semgrep scan --config frappe-semgrep-rules/rules --baseline-commit "$CI_MERGE_REQUEST_DIFF_BASE_SHA" --metrics=off --disable-version-check --error --strict --json --output ci-reports/semgrep-changed.json .
+    - |
+      python3 - <<'PY'
+      import csv
+      from pathlib import Path
+      rows = list(csv.reader(Path("raven/translations/ru.csv").open(encoding="utf-8", newline="")))
+      assert rows and all(len(row) == 2 and all(row) for row in rows), "Invalid translation CSV"
+      assert len({row[0] for row in rows}) == len(rows), "Duplicate translation keys"
+      print(f"Russian translation CSV: {len(rows)} unique keys")
+      PY
+
+semgrep-full-report:
+  extends: .frappe-semgrep
+  # The production base has 23 findings and 3 PartialParsing warnings.
+  # Keep the full report visible as a warning; changed code remains a required gate.
+  # Preparation/config/engine failures other than findings or parse warnings fail CI.
+  allow_failure:
+    exit_codes: [1, 3]
+  script:
+    - semgrep scan --config frappe-semgrep-rules/rules --metrics=off --disable-version-check --error --strict --json --output ci-reports/semgrep-full.json .

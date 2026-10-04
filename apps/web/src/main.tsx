@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { ThemeProvider } from "./components/theme-provider"
+import { initializeLanguage } from "@lib/language"
 
 scan({
   enabled: true,
@@ -21,7 +22,7 @@ if (import.meta.env.DEV) {
       const v = JSON.parse(values.message)
       if (!window.frappe) window.frappe = {};
       window.frappe.boot = v
-      window.frappe._messages = window.frappe.boot["__messages"];
+      initializeLanguage()
       // After boot lands — push config (firebase_client_config) comes from it
       initPushNotifications()
       createRoot(document.getElementById('root')!).render(
@@ -62,6 +63,7 @@ if (import.meta.env.DEV) {
       }
     }, 3000)
   }
+  initializeLanguage()
   initPushNotifications()
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
