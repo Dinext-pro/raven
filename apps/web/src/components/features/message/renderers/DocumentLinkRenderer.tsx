@@ -235,7 +235,7 @@ const DocumentLinkSkeleton = ({ meta }: { meta?: DoctypeMeta }) => {
 const DocumentLinkFallback = ({ doctype, docname }: { doctype: string; docname: string }) => (
     <div className={`${cardSurface} flex items-center gap-2`}>
         <Badge variant="outline" theme="gray">
-            {doctype}
+            {_(doctype)}
         </Badge>
         <a
             href={defaultDocRoute(doctype, docname)}
@@ -334,7 +334,7 @@ const DocumentCard = ({
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <div className="flex items-center gap-1.5">
                         <Badge variant="subtle" theme="gray">
-                            {doctype}
+                            {_(doctype)}
                         </Badge>
                         {preview.id && (
                             <button
@@ -412,7 +412,7 @@ const DocumentFieldsGrid = ({ preview, meta }: { preview: PreviewData; meta?: Do
         <div className="grid grid-cols-[minmax(5rem,auto)_1fr] items-baseline gap-x-4 gap-y-1.5">
             {fields.map(([label, value]) => (
                 <Fragment key={label}>
-                    <span className="truncate text-p-sm text-ink-gray-5">{label}</span>
+                    <span className="truncate text-p-sm text-ink-gray-5">{_(label)}</span>
                     <div className="min-w-0 text-p-sm text-ink-gray-8">
                         <FieldValue label={label} value={value!} meta={meta} />
                     </div>
@@ -440,7 +440,7 @@ export const DocumentPreviewSummary = ({ doctype, docname }: { doctype: string; 
         return (
             <div className="flex items-center gap-2">
                 <Badge variant="subtle" theme="gray">
-                    {doctype}
+                    {_(doctype)}
                 </Badge>
                 <span className="truncate text-p-sm text-ink-gray-7">{docname}</span>
             </div>
@@ -460,7 +460,7 @@ export const DocumentPreviewSummary = ({ doctype, docname }: { doctype: string; 
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <div className="flex items-center gap-1.5">
                         <Badge variant="subtle" theme="gray">
-                            {doctype}
+                            {_(doctype)}
                         </Badge>
                         {preview.id && <span className="truncate text-p-xs text-ink-gray-5">{preview.id}</span>}
                     </div>
@@ -491,7 +491,7 @@ export const DocumentLinkInline = ({
     <p className={cn("flex min-w-0 items-center gap-1 text-sm text-ink-gray-5", className)}>
         <FileBoxIcon className="size-3.5 shrink-0" />
         <span className="truncate">
-            {doctype} · {docname}
+            {_(doctype)} · {docname}
         </span>
     </p>
 )
