@@ -1,5 +1,5 @@
 import frappe
-from frappe.tests import IntegrationTestCase
+from raven.tests import RavenTestCase as IntegrationTestCase
 
 from raven.api.raven_users import get_user_access, update_user_access
 

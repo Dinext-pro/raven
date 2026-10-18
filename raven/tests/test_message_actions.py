@@ -1,5 +1,5 @@
 import frappe
-from frappe.tests import IntegrationTestCase
+from raven.tests import RavenTestCase as IntegrationTestCase
 
 from raven.api.message_actions import execute_action, get_action_defaults
 

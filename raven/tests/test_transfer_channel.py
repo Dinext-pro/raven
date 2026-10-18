@@ -1,5 +1,5 @@
 import frappe
-from frappe.tests import IntegrationTestCase
+from raven.tests import RavenTestCase as IntegrationTestCase
 
 from raven.api.raven_channel import transfer_channel_to_workspace
 from raven.utils import delete_workspace_members_cache

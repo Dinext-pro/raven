@@ -1,5 +1,5 @@
 import frappe
-from frappe.tests import IntegrationTestCase
+from raven.tests import RavenTestCase as IntegrationTestCase
 
 from raven.api.raven_message import attach_file_to_document
 
