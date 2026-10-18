@@ -2,7 +2,7 @@ import json
 from datetime import timedelta
 
 import frappe
-from frappe.tests import IntegrationTestCase
+from raven.tests import RavenTestCase as IntegrationTestCase
 from frappe.utils import add_to_date, get_datetime, now_datetime
 
 from raven.utils import get_raven_user

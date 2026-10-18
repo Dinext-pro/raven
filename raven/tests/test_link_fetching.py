@@ -2,7 +2,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import frappe
-from frappe.tests import IntegrationTestCase
+from raven.tests import RavenTestCase as IntegrationTestCase
 
 import raven.safe_fetch as safe_fetch_module
 from raven.link_fetcher import (

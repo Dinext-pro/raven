@@ -2,7 +2,7 @@ import io
 import zipfile
 
 import frappe
-from frappe.tests import IntegrationTestCase
+from raven.tests import RavenTestCase as IntegrationTestCase
 
 from raven.api.raven_message import download_batch_files
 

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "upstream": "frappe/raven",
+  "selected_tag": "v3.0.0",
+  "selected_commit": "a732e10f9c8b2ab3446038396e3eea763da617e7",
+  "integration_branch": "main/v3",
+  "prior_dinext_commit": "bb0bd35577a4e34b0f29a65a47eb6ab654b564ff",
+  "prior_vendor_snapshot": "f1f9db1c806c1e993cb465a9ef2d19e6b40663f6",
+  "customizations": "docs/dinext-source-upgrade.md",
+  "automatic_sync": false
+}

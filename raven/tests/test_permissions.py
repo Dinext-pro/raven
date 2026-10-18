@@ -1,5 +1,5 @@
 import frappe
-from frappe.tests import IntegrationTestCase
+from raven.tests import RavenTestCase as IntegrationTestCase
 
 from raven.api.raven_channel import create_direct_message_channel
 from raven.api.threads import create_thread
@@ -463,7 +463,7 @@ class TestPermissions(IntegrationTestCase):
 		test_channel = self.create_test_channel(workspace_name=test_workspace.name)
 		test_channel.insert()
 
-		self.assertEqual(test_channel.name, f"{test_workspace.name}-test-channel")
+		self.assertEqual(test_channel.name, "test-workspace-test-channel")
 
 		test_channel.delete()
 
@@ -493,7 +493,7 @@ class TestPermissions(IntegrationTestCase):
 		# Test1 should now be able to create a channel in the workspace
 		test_channel.insert()
 
-		self.assertEqual(test_channel.name, f"{test_workspace.name}-test-channel")
+		self.assertEqual(test_channel.name, "test-workspace-test-channel")
 
 		test_channel.delete()
 
@@ -508,7 +508,7 @@ class TestPermissions(IntegrationTestCase):
 		# Test1 should now be able to create a channel in the workspace
 		test_channel.insert()
 
-		self.assertEqual(test_channel.name, f"{test_workspace.name}-test-channel")
+		self.assertEqual(test_channel.name, "test-workspace-test-channel")
 
 		test_channel.delete()
 

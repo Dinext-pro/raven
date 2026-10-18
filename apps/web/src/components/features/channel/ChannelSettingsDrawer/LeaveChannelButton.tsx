@@ -89,7 +89,6 @@ export function LeaveChannelButton({ channel }: LeaveChannelButtonProps) {
           <Button
             type="button"
             variant="solid"
-            size="md"
             theme="red"
             disabled={loading}
             onClick={handleLeaveChannel}
