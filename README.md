@@ -269,3 +269,7 @@ If you find any bugs, feel free to report them here on [GitHub Issues](https://g
 ## License
 
 AGPLv3
+
+## Dinext maintained references
+
+This previous Raven v2 line remains available as `dinext/main/v2`; the current default is the separately accepted `dinext/main/v3`. Company branches use one `dinext/` prefix. External contributor heads keep their own names. Original tags and application versions remain unchanged; this transition publishes no release or deployment.
