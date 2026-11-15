@@ -65,7 +65,7 @@ PYTHON
 )
 admin_password=$(python -c 'import secrets; print(secrets.token_urlsafe(24))')
 echo "::add-mask::$admin_password"
-frappe_cli new-site "$site" --db-root-password ci --admin-password "$admin_password" --mariadb-user-host-login-scope='%'
+frappe_cli new-site "$site" --db-root-password ci --admin-password "$admin_password" --set-default --mariadb-user-host-login-scope='%'
 frappe_cli --site "$site" install-app erpnext "$app"
 migration_fixture seed
 

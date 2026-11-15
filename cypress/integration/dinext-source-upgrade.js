@@ -40,6 +40,7 @@ describe('Raven selected-release regression', () => {
         cy.visit('/app/task/' + encodeURIComponent(task))
         cy.get('.dinext-raven-open-channel').should('be.visible').click()
         cy.get('.raven-channel-header-name').should('contain', channel.channel_name)
+        cy.window().its('frappe.realtime.socket.connected').should('eq', true)
         cy.get('.raven-chat-input textarea').type(text + '{enter}')
         cy.contains('.raven-chat-view-container', text).should('be.visible')
         cy.callUpgrade('raven.api.raven_message.get_messages_with_dates', { channel_id: channel.name })
