@@ -313,6 +313,21 @@ def delete_channel_members_cache(channel_id: str):
 	)
 
 
+def delete_member_caches(channel_ids: list[str], workspace_ids: list[str]):
+	"""
+	Drops many member caches in one Redis call, now and again after commit. For a change
+	that touches no membership, such as a user rename: nothing is broadcast, and clients
+	pick the fresh rows up on their next fetch.
+	"""
+	keys = [f"raven:channel_members:{channel}" for channel in channel_ids] + [
+		f"raven:workspace_members:{workspace}" for workspace in workspace_ids
+	]
+	if not keys:
+		return
+	frappe.cache().delete_value(keys)
+	frappe.db.after_commit.add(lambda: frappe.cache().delete_value(keys))
+
+
 def get_channel_member(channel_id: str, user: str = None) -> dict:
 	"""
 	Get the channel member ID
@@ -334,6 +349,16 @@ def is_channel_member(channel_id: str, user: str = None) -> bool:
 		user = frappe.session.user
 
 	return user in get_channel_members(channel_id)
+
+
+def desk_has_raven_icon() -> bool:
+	"""Frappe 16.50 and later load the Raven icon sprite from hooks into the desk.
+
+	Older versions resolve the sprite path differently and never load it, so
+	the "raven" icon name would render blank there.
+	"""
+	major, minor = (int(part) for part in frappe.__version__.split(".")[:2])
+	return (major, minor) >= (16, 50)
 
 
 def get_raven_user(user_id: str) -> str:
@@ -450,9 +475,14 @@ def make_api_call(url: str, api_key: str, api_secret: str, method: str, params: 
 	auth_header = {"Authorization": f"Basic {token}"}
 
 	if method == "GET":
-		response = requests.get(url, headers=auth_header, params=params)
+		response = requests.get(url, headers=auth_header, params=params, timeout=15)
 	elif method == "POST":
-		response = requests.post(url, headers=auth_header, json=params)
+		response = requests.post(url, headers=auth_header, json=params, timeout=15)
+
+	if response.status_code in (401, 403):
+		from raven.frappe_cloud_push import retry_after_refusal
+
+		retry_after_refusal()
 
 	# return response.json only if the response is successful
 	if not response.ok:

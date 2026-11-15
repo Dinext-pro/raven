@@ -15,15 +15,16 @@ app_logo_url = "/assets/raven/raven_logo.svg"
 
 # include js, css files in header of desk.html
 app_include_css = "raven.bundle.css"
-# app_include_css = "/assets/raven/css/raven.css"
-# app_include_js = "/assets/raven/js/raven.js"                 ]
 app_include_js = "raven.bundle.js"
+# Raven's own desk icons, e.g. frappe.utils.icon("raven").
+app_include_icons = ["/assets/raven/icons/raven.svg"]
 
 add_to_apps_screen = [
 	{
 		"name": "raven",
 		"logo": "/assets/raven/raven_logo.svg",
 		"title": "Raven",
+		"setup_wizard_text": "Welcome to Raven. Let's set up your team's space.",
 		"route": "/raven",
 		"has_permission": "raven.permissions.check_app_permission",
 	}
@@ -89,7 +90,9 @@ extend_bootinfo = "raven.boot.boot_session"
 # ------------
 
 # before_install = "raven.install.before_install"
-after_install = "raven.install.after_install"
+# On Frappe Cloud, set push up on install and at setup, so it works from the first message.
+after_install = ["raven.install.after_install", "raven.frappe_cloud_push.queue_initial_push_setup"]
+setup_wizard_success = "raven.frappe_cloud_push.queue_initial_push_setup"
 # after_sync = ""
 
 # Uninstallation
@@ -140,6 +143,7 @@ doc_events = {
 		"after_insert": "raven.raven.doctype.raven_user.raven_user.add_user_to_raven",
 		"on_update": "raven.raven.doctype.raven_user.raven_user.add_user_to_raven",
 		"on_trash": "raven.raven.doctype.raven_user.raven_user.remove_user_from_raven",
+		"after_rename": "raven.raven.doctype.raven_user.raven_user.rename_raven_user",
 	},
 	"Department": {
 		"after_insert": "raven.raven_integrations.controllers.department.after_insert",
@@ -285,6 +289,11 @@ has_permission = {
 }
 
 on_session_creation = "raven.api.user_availability.set_user_active"
+
+# The bundled native app runs from its own origins; allow them on API calls without site config.
+before_request = ["raven.api.native.set_cors"]
+# Frappe 15 ignores the origin set_cors chooses, so Raven writes the CORS headers there itself.
+after_request = ["raven.api.native.add_cors_headers"]
 on_logout = "raven.api.user_availability.set_user_inactive"
 
 export_python_type_annotations = True
@@ -298,3 +307,7 @@ raven_document_link_override = "raven.api.document_link.get_new_app_document_lin
 ignore_translatable_strings_from = ["frappe"]
 
 sqlite_search = ["raven.api.search.RavenSearch"]
+
+# Expose method source code through the API discovery endpoints. Safe for open
+# source apps and helps API clients understand what a method does.
+expose_discovery_source = True

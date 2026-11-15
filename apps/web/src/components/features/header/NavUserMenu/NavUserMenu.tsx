@@ -1,9 +1,9 @@
-import { LogOut, Bell, SettingsIcon, Loader2 } from "lucide-react"
+import { LogOut, Bell, SettingsIcon, Loader2, CreditCard } from "lucide-react"
 import { useLogout } from "@hooks/useLogout"
 import { UserAvatar } from "@components/features/message/UserAvatar"
 import { Button } from "@components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@components/ui/dropdown-menu"
-import { AVAILABILITY_OPTIONS, useSetAvailability, type AvailabilityStatus } from "@hooks/useSetAvailability"
+import { availabilityOptions, useSetAvailability, type AvailabilityStatus } from "@hooks/useSetAvailability"
 import { getStatusIndicatorColor } from "@components/features/message/UserAvatar"
 import { cn } from "@lib/utils"
 import { CircleDot } from "lucide-react"
@@ -21,6 +21,7 @@ import { getErrorMessage } from "@lib/frappe"
 import { FrappeError } from "frappe-react-sdk"
 import { useIsPushNotificationEnabled } from "@hooks/fetchers/useIsPushNotificationEnabled"
 import { Spinner } from "@components/ui/spinner"
+import { useCloudSettings } from "@hooks/useCloudSettings"
 
 const NavUserMenu = () => {
 
@@ -49,6 +50,13 @@ const NavUserMenu = () => {
     const { logout, isLoggingOut } = useLogout()
 
     const isPushAvailable = useIsPushNotificationEnabled()
+
+    // Only on a Frappe Cloud site, and only for users who may manage it (boot decides).
+    const { available: canManageBilling, opening: openingBilling, open: openBilling } = useCloudSettings()
+    const manageBilling = () =>
+        openBilling().catch((error: unknown) =>
+            toast.error(error instanceof Error ? error.message : _("Could not open Cloud Settings")),
+        )
 
     // Source of truth for "enabled on this device" is the stored FCM token (lib/push).
     const [pushOn, setPushOn] = useState<boolean>(() => isPushEnabled())
@@ -105,6 +113,10 @@ const NavUserMenu = () => {
                     <SettingsIcon />
                     <span>{_("Settings")}</span>
                 </DropdownMenuItem>
+                {canManageBilling && <DropdownMenuItem disabled={openingBilling} onClick={manageBilling}>
+                    <CreditCard />
+                    <span>{_("Manage Billing")}</span>
+                </DropdownMenuItem>}
                 {isPushAvailable && <DropdownMenuItem onClick={() => togglePush(!pushOn)}>
                     <Bell />
                     <span>{pushOn ? _("Disable Notifications") : _("Enable Notifications")}</span>
@@ -141,7 +153,7 @@ const StatusSubMenu = () => {
                     value={availability}
                     onValueChange={(value) => setAvailability(value as AvailabilityStatus)}
                 >
-                    {AVAILABILITY_OPTIONS.map((option) => (
+                    {availabilityOptions().map((option) => (
                         <DropdownMenuRadioItem key={option.value} value={option.value}>
                             <span className={cn("size-2 rounded-full", getStatusIndicatorColor(option.value))} />
                             {option.label}

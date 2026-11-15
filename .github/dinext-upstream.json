@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
   "upstream": "frappe/raven",
-  "selected_tag": "v3.0.0",
-  "selected_commit": "a732e10f9c8b2ab3446038396e3eea763da617e7",
+  "selected_tag": "v3.2.0",
+  "selected_commit": "5a5e4c48e477831d82943ba241e20cc9fb6ce578",
   "integration_branch": "dinext/main/v3",
-  "prior_dinext_commit": "bb0bd35577a4e34b0f29a65a47eb6ab654b564ff",
-  "prior_vendor_snapshot": "f1f9db1c806c1e993cb465a9ef2d19e6b40663f6",
+  "prior_dinext_commit": "a5fa6aee0a67c2f4734219c0979a08e681ec072b",
+  "prior_vendor_snapshot": "a732e10f9c8b2ab3446038396e3eea763da617e7",
   "customizations": "docs/dinext-source-upgrade.md",
   "automatic_sync": false
 }

@@ -23,7 +23,6 @@ def csrf():
 @whitelist_for_tests
 def cleanup():
 	_require_test_site()
-	pass
 	if frappe.db.exists("User", USER):
 		frappe.delete_doc("User", USER, force=True, ignore_permissions=True)
 
@@ -40,6 +39,7 @@ def prepare():
 	user.insert(ignore_permissions=True)
 	roles = [r for r in ['System Manager', 'Raven User', 'Raven Admin'] if frappe.db.exists("Role", r)]
 	user.add_roles(*roles)
+	frappe.db.set_value("Raven User", {"user": USER}, "onboarded", 1)
 	update_password(USER, password)
 	result = {"user": USER, "password": password, "title": TITLE}
 	return result
