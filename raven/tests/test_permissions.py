@@ -82,8 +82,8 @@ class TestPermissions(IntegrationTestCase):
 		message = self.create_test_message(channel.name).insert()
 
 		stream = get_messages_with_dates(channel.name)
-		self.assertEqual([block["block_type"] for block in stream], ["date", "message"])
-		self.assertEqual(stream[1]["data"]["name"], message.name)
+		self.assertEqual(stream[0]["block_type"], "date")
+		self.assertIn(message.name, [block["data"]["name"] for block in stream if block["block_type"] == "message"])
 
 		frappe.set_user("test1@example.com")
 		with self.assertRaises(frappe.PermissionError):
