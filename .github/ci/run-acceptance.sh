@@ -31,7 +31,7 @@ checkout "$GITHUB_REPOSITORY" "$baseline" "baseline/$app"
 git -C "$source_dir" worktree add --quiet --detach "$bench_dir/apps/$app" "$revision"
 printf '%s\n' frappe erpnext "$app" dinext_common dinext_raven > sites/apps.txt
 cat > sites/common_site_config.json <<'JSON'
-{"db_host":"127.0.0.1","db_port":3306,"redis_cache":"redis://127.0.0.1:6379/0","redis_queue":"redis://127.0.0.1:6379/1","redis_socketio":"redis://127.0.0.1:6379/2","socketio_port":9000,"developer_mode":1,"allow_tests":true,"disable_scheduler":1,"pause_scheduler":1}
+{"db_host":"127.0.0.1","db_port":3306,"redis_cache":"redis://127.0.0.1:6379/0","redis_queue":"redis://127.0.0.1:6379/1","redis_socketio":"redis://127.0.0.1:6379/2","socketio_port":9000,"developer_mode":1,"allow_tests":true,"server_script_enabled":1,"disable_scheduler":1,"pause_scheduler":1}
 JSON
 
 python -m venv env
@@ -52,6 +52,7 @@ frappe.connect()
 frappe.set_user("Administrator")
 title = "Dinext migration fixture"
 if sys.argv[2] == "seed":
+    frappe.get_doc({"doctype": "Warehouse Type", "name": "Transit"}).insert()
     frappe.get_doc({
         "doctype": "Raven Workspace", "workspace_name": title, "type": "Private",
     }).insert()
@@ -92,8 +93,8 @@ if [[ "$phase" == compatibility ]]; then
 else
   (cd sites && python -m frappe.utils.bench_helper frappe --site "$site" serve --port 8000 --noreload) > "$reports/web.log" 2>&1 & web_pid=$!
   trap 'kill "$web_pid" 2>/dev/null || true; tail -n 30 "$reports/web.log"' EXIT
-  curl --fail --silent --show-error --retry 30 --retry-connrefused --retry-delay 2 "http://$site:8000/api/method/ping"
-  export CYPRESS_BASE_URL="http://$site:8000"
+  curl --fail --silent --show-error --retry 30 --retry-connrefused --retry-delay 2 "http://127.0.0.1:8000/api/method/ping"
+  export CYPRESS_BASE_URL="http://127.0.0.1:8000"
   npx --yes --package=cypress@13.17.0 cypress run --project "apps/$app" --reporter junit --reporter-options "mochaFile=$reports/$app-browser-[hash].xml" --env "adminPassword=$admin_password"
   node apps/frappe/socketio.js > "$reports/socketio.log" 2>&1 & socket_pid=$!
   trap 'kill "$web_pid" "$socket_pid" 2>/dev/null || true; tail -n 30 "$reports/web.log" "$reports/socketio.log"' EXIT
