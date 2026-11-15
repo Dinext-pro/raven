@@ -38,7 +38,15 @@ describe('Raven selected-release regression', () => {
       }).then(({ body }) => {
         const channel = body.message
         cy.visit('/app/task/' + encodeURIComponent(task))
-        cy.get('.dinext-raven-open-channel').should('be.visible').click()
+        cy.get('.dinext-raven-open-channel').should('be.visible').then(($open) => {
+          cy.window().then((win) => {
+            // Opening from Task can overlap its throttled document subscription.
+            cy.stub(win.frappe.realtime, 'doc_subscribe').callsFake((doctype, name) => {
+              if (doctype !== 'Raven Channel') win.frappe.realtime.emit('doc_subscribe', doctype, name)
+            })
+          })
+          cy.wrap($open).click()
+        })
         cy.get('.raven-channel-header-name').should('contain', channel.channel_name)
         cy.window().its('frappe.realtime.socket.connected').should('eq', true)
         cy.get('.raven-chat-input textarea').type(text + '{enter}')
