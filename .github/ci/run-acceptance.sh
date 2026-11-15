@@ -102,6 +102,11 @@ frappe.connect()
 for app_name in ("frappe", "erpnext"):
     enable_setup_wizard_complete(app_name)
 frappe.db.set_single_value("System Settings", "setup_complete", 1)
+# Older dinext_common fixtures reference a filename replaced by its bundle.
+legacy = "/assets/dinext_common/js/form_conflict_merge.js"
+for row in frappe.get_all("Client Script", filters={"dt": "Task", "enabled": 1}, fields=["name", "script"]):
+    if legacy in row.script:
+        frappe.db.set_value("Client Script", row.name, "script", row.script.replace(legacy, "form-conflict-merge.bundle.js"))
 
 frappe.db.commit()
 frappe.clear_cache()
