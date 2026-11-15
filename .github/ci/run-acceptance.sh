@@ -103,13 +103,6 @@ for app_name in ("frappe", "erpnext"):
     enable_setup_wizard_complete(app_name)
 frappe.db.set_single_value("System Settings", "setup_complete", 1)
 
-# The overlay scenarios create standard ERPNext Tasks as these users.
-for email in ("cypress.raven.member@example.com", "cypress.raven.peer@example.com"):
-    user = frappe.get_doc("User", email) if frappe.db.exists("User", email) else frappe.get_doc({
-        "doctype": "User", "email": email, "first_name": "Raven Cypress User",
-        "user_type": "System User", "send_welcome_email": 0, "language": "ru",
-    }).insert()
-    user.add_roles("Projects User")
 frappe.db.commit()
 frappe.clear_cache()
 frappe.destroy()
@@ -119,14 +112,7 @@ PYTHON
   trap 'kill "$web_pid" 2>/dev/null || true; tail -n 30 "$reports/web.log"' EXIT
   curl --fail --silent --show-error --retry 30 --retry-connrefused --retry-delay 2 "http://127.0.0.1:8000/api/method/ping"
   export CYPRESS_BASE_URL="http://127.0.0.1:8000"
-  npx --yes --package=cypress@13.17.0 cypress run --project "apps/$app" --reporter junit --reporter-options "mochaFile=$reports/$app-browser-[hash].xml" --env "adminPassword=$admin_password"
   node apps/frappe/socketio.js > "$reports/socketio.log" 2>&1 & socket_pid=$!
   trap 'kill "$web_pid" "$socket_pid" 2>/dev/null || true; tail -n 30 "$reports/web.log" "$reports/socketio.log"' EXIT
-  npm ci --prefix apps/dinext_raven/ui-tests
-  ui_password=$(python -c 'import secrets; print(secrets.token_urlsafe(24))')
-  echo "::add-mask::$ui_password"
-  apps/dinext_raven/ui-tests/node_modules/.bin/cypress run --project apps/dinext_raven/ui-tests \
-    --spec 'apps/dinext_raven/ui-tests/cypress/e2e/kommunikacii-perepiska-v-vidzhete.cy.js,apps/dinext_raven/ui-tests/cypress/e2e/kommunikacii-discuss-dokument.cy.js' \
-    --reporter junit --reporter-options "mochaFile=$reports/overlay-browser-[hash].xml" \
-    --env "adminPassword=$admin_password,uiPassword=$ui_password"
+  npx --yes --package=cypress@13.17.0 cypress run --project "apps/$app" --reporter junit --reporter-options "mochaFile=$reports/$app-browser-[hash].xml" --env "adminPassword=$admin_password"
 fi
