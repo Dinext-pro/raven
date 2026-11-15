@@ -84,6 +84,7 @@ frappe_cli --site "$site" clear-cache
 printf 'Tested %s at `%s` after migration from `%s`.\n' "$app" "$revision" "$baseline" | tee "$reports/revision.txt" >> "$GITHUB_STEP_SUMMARY"
 
 if [[ "$phase" == compatibility ]]; then
+  python -m pip install -q unittest-xml-reporting==3.2.0
   yarn --cwd apps/raven/apps/web test
   frappe_cli --site "$site" run-tests --app raven --module raven.tests.test_permissions --junit-xml-output "$reports/test_permissions.xml"
   frappe_cli --site "$site" run-tests --app dinext_raven --module dinext_raven.tests.test_document_channels --junit-xml-output "$reports/test_document_channels.xml"
