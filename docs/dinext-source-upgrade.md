@@ -1,18 +1,18 @@
 # Dinext source upgrade
 
-Selected upstream release: [v3.0.0](https://github.com/frappe/raven/releases/tag/v3.0.0).
-Immutable upstream commit: `a732e10f9c8b2ab3446038396e3eea763da617e7`.
-Dinext integration line: `main/v3`.
+Selected upstream release: [v3.2.0](https://github.com/frappe/raven/releases/tag/v3.2.0).
+Immutable upstream commit: `5a5e4c48e477831d82943ba241e20cc9fb6ce578`.
+Dinext integration line: `dinext/main/v3`.
 
 ## Preserved company changes
 
-Use the existing main/v3 line and retain its Russian localization and document-link rendering changes. Keep main/v2 available unchanged. The existing dinext-raven overlay remains responsible for Desk widget integration.
+The v3 line uses the upstream translation loader and retains Russian date formatting, translated document type labels, and the Russian catalog. The Dinext Desk overlay still needs the Frappe 15 widget. The fork retains its bundle, styles, settings flag and compatible message stream with the current channel read-permission check.
 
 ## Verification and activation
 
-Use the existing Dinext validation workflow and the tests/build commands declared by the application. Browser and migration checks must use an isolated Frappe 15 test site with synthetic data. Upstream publication workflows remain disabled.
+The Dinext acceptance workflow builds the candidate, migrates a disposable Frappe and ERPNext 15 site from the preceding fork revision, and runs the compatibility and browser suites. It installs the Dinext overlay after the Raven migration and tests both applications together. It reports the tested revision in the run summary. Test fixtures use synthetic records and require an enabled development test site and the System Manager role.
 
-This source update does not change a running site or deployment manifest. A runtime cutover requires verified backups, the exact accepted fork commit and matching release evidence. Keep the preceding source line available for rollback.
+Deployments use an independently verified release and manifest. Upstream publication workflows are archived under `.github/imported-workflows-disabled`.
 
 ## Verification record — 2026-10-18
 

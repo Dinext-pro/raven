@@ -1,3 +1,4 @@
+import { siteBaseName, siteOrigin } from "@lib/site"
 import { useContext, useMemo } from "react"
 import dayjs, { type Dayjs } from "dayjs"
 import { getDefaultStore, useAtomValue, useSetAtom } from "jotai"
@@ -41,6 +42,7 @@ import { errorResponseToast } from "@components/ui/error-banner"
 import type { PollData } from "../renderers/PollMessageContent"
 import { useEnabledMessageActions } from "@hooks/useEnabledMessageActions"
 import { formatDateTimeLabel, getReminderPresets, toServerDatetime } from "@lib/timeUtils"
+import { canManageChannel } from "@lib/permissions"
 
 export type { MessageAction }
 
@@ -283,8 +285,8 @@ export const useMessageActions = (
                     // Pathname-based links broke inside threads (?message_id belongs to
                     // the channel's stream) and in the notification/search panes (no
                     // channel in the URL at all).
-                    const base = import.meta.env.VITE_BASE_NAME ? `/${import.meta.env.VITE_BASE_NAME}` : ""
-                    const url = `${window.location.origin}${base}/message/${encodeURIComponent(message.name)}`
+                    const base = siteBaseName() ? `/${siteBaseName()}` : ""
+                    const url = `${siteOrigin()}${base}/message/${encodeURIComponent(message.name)}`
                     navigator.clipboard
                         .writeText(url)
                         .then(() => toast.success(_("Link copied")))
@@ -442,8 +444,19 @@ export const useMessageActions = (
             })
         }
 
-        // Owner-only, destructive last
+        // Owner-only, destructive last. A bot's message has no owner to speak of, so the
+        // channel's admins get Delete for it, matching the server's rule.
         const owner: MessageAction[] = []
+        const deleteAction: MessageAction = {
+            id: "delete",
+            label: _("Delete"),
+            icon: Trash2,
+            danger: true,
+            onSelect: () => setDialog({ type: "delete", message }),
+        }
+        if (message.is_bot_message && onServer && canManageChannel(parentChannel)) {
+            owner.push(deleteAction)
+        }
         if (isOwner && onServer) {
             // Edit is inline (not a dialog): flag this message as the channel's edit
             // target and the body renderer swaps in the editor. Hidden when there's
@@ -457,13 +470,7 @@ export const useMessageActions = (
                     onSelect: () => getDefaultStore().set(editingMessageAtom(editTarget.channel_id), editTarget.name),
                 })
             }
-            owner.push({
-                id: "delete",
-                label: _("Delete"),
-                icon: Trash2,
-                danger: true,
-                onSelect: () => setDialog({ type: "delete", message }),
-            })
+            owner.push(deleteAction)
         }
 
         // Poll: retract your vote. Shown only when the poll is loaded, you have

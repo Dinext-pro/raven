@@ -1,3 +1,4 @@
+import { fileSrc } from "@hooks/useFileSrc"
 import { useMemo } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@components/ui/dialog"
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@components/ui/drawer"
@@ -20,12 +21,12 @@ const customEmojiLabel = (reaction: ReactionObject) => `:${reaction.emoji_name}:
  *  pb-0 so rows can scroll to its true bottom edge, scroll-fade softening the cut.
  *  Desktop keeps its old edge-to-edge panel (env() has no home indicator there). */
 const PANEL_SCROLLER =
-    "max-h-80 min-h-80 overflow-y-auto px-4 md:px-6 scroll-fade max-md:pb-[calc(env(safe-area-inset-bottom)+1rem)]"
+    "max-h-80 min-h-80 overflow-y-auto px-4 md:px-6 scroll-fade max-md:pb-[calc(var(--inset-bottom)+1rem)]"
 
 /** Renders one reaction's glyph — a custom emoji image, or the Apple-set native emoji. */
 const EmojiGlyph = ({ reaction }: { reaction: ReactionObject }) =>
     reaction.is_custom ? (
-        <img src={reaction.reaction} alt={reaction.emoji_name} loading="lazy" className="h-4 w-4 object-contain" />
+        <img src={fileSrc(reaction.reaction)} alt={reaction.emoji_name} loading="lazy" className="h-4 w-4 object-contain" />
     ) : (
         <em-emoji native={reaction.reaction} set="native" size="1.1em" fallback={reaction.reaction} />
     )
@@ -66,12 +67,13 @@ const ReactionsBody = ({ reactions }: { reactions: ReactionObject[] }) => {
 
     return (
         <Tabs defaultValue="all">
-            <TabsList className="w-full">
-                <TabsTrigger value="all" className="gap-2 w-full">
+            {/* A few tabs share the width; many keep their size and the row scrolls. */}
+            <TabsList scrollable className="w-full px-4 md:px-6">
+                <TabsTrigger value="all" className="gap-2 flex-1 min-w-fit">
                     {_("All")} <span className="text-ink-gray-5 text-sm-regular">{reactorsByUser.size}</span>
                 </TabsTrigger>
                 {reactions.map((reaction) => (
-                    <TabsTrigger key={reaction.emoji_name} value={reaction.emoji_name} className="gap-2 w-full">
+                    <TabsTrigger key={reaction.emoji_name} value={reaction.emoji_name} className="gap-2 flex-1 min-w-fit">
                         <EmojiGlyph reaction={reaction} />
                         <span className="text-ink-gray-5 text-sm-regular">{reaction.count}</span>
                     </TabsTrigger>
@@ -110,7 +112,7 @@ const ReactionsBody = ({ reactions }: { reactions: ReactionObject[] }) => {
                         with the name. Native emojis need no caption. */}
                     {reaction.is_custom ? (
                         <Badge variant="subtle" size='lg'>
-                            <img src={reaction.reaction} alt={reaction.emoji_name} loading="lazy" className="size-4 object-contain" />
+                            <img src={fileSrc(reaction.reaction)} alt={reaction.emoji_name} loading="lazy" className="size-4 object-contain" />
                             {customEmojiLabel(reaction)}
                         </Badge>
                     ) : null}

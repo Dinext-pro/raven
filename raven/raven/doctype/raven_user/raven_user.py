@@ -1,10 +1,16 @@
 # Copyright (c) 2026, Frappe Technologies Pvt. Ltd. and contributors
 # For license information, please see license.txt
 
+import json
+
 import frappe
 from frappe import _
 from frappe.model.document import Document
+from frappe.model.rename_doc import rename_doc
+from frappe.query_builder.functions import Replace
 from frappe.utils.data import get_url
+
+from raven.utils import delete_member_caches
 
 
 class RavenUser(Document):
@@ -42,6 +48,7 @@ class RavenUser(Document):
 		hide_read_receipts: DF.Check
 		last_mention_viewed_on: DF.Datetime | None
 		link_previews: DF.Literal["Link Hover", "Preview Card"]
+		onboarded: DF.Check
 		pinned_channels: DF.Table[RavenPinnedChannels]
 		pinned_workspaces: DF.Table[RavenUserPinnedWorkspaces]
 		quiet_hours_nudge: DF.Literal["No Nudge", "Nudge", "Auto Silent"]
@@ -119,7 +126,19 @@ class RavenUser(Document):
 		"""
 		Remove the Raven User from all channels
 		"""
-		frappe.db.delete("Raven Channel Member", {"user_id": self.user})
+		# Delete all non-admin channel memberships.
+		frappe.db.delete("Raven Channel Member", {"user_id": self.user, "is_admin": 0})
+
+		# Admin channel memberships need to be deleted manually since admins will be transferred
+		channel_members = frappe.get_all(
+			"Raven Channel Member", filters={"user_id": self.user, "is_admin": 1}
+		)
+		for channel_member in channel_members:
+			frappe.delete_doc("Raven Channel Member", channel_member.name, ignore_permissions=True)
+		# Workspace memberships link this doc; left behind they block the delete.
+		workspace_members = frappe.get_all("Raven Workspace Member", filters={"user": self.name})
+		for workspace_member in workspace_members:
+			frappe.delete_doc("Raven Workspace Member", workspace_member.name, ignore_permissions=True)
 		# Raven Reminder.user links this doc by name (not the frappe user id)
 		frappe.db.delete("Raven Reminder", {"user": self.name})
 		# Scheduled messages are owned by the frappe user. Left behind, the sweep would
@@ -130,13 +149,16 @@ class RavenUser(Document):
 	def after_delete(self):
 		"""
 		Remove the Raven User role from the user.
+
+		The role row is deleted directly rather than through a User save. A save
+		here runs every app's on_update hooks on the User, and when the User
+		itself is being deleted that let other apps recreate records mid-delete
+		and fail the deletion. When the User is being deleted its role rows go
+		with it, so there is nothing to do.
 		"""
-		if self.user:
-			user = frappe.get_doc("User", self.user)
-			user.flags.ignore_permissions = True
-			user.flags.deleting_raven_user = True
-			user.remove_roles("Raven User")
-			user.save()
+		if self.user and not self.flags.user_being_deleted:
+			frappe.db.delete("Has Role", {"parent": self.user, "parenttype": "User", "role": "Raven User"})
+			frappe.clear_cache(user=self.user)
 
 		self.invalidate_user_list_cache()
 
@@ -148,13 +170,19 @@ class RavenUser(Document):
 
 	def update_photo_from_user(self):
 		"""
-		We need to create a new File record for the user image and attach it to the Raven User record.
-		Why not just copy the URL from the User record? Because the URL is not accessible to the Raven User,
-		and Frappe creates a duplicate file in the system (that is public) but does not update the URL in the field.
+		A public photo on the User is used as it is: everyone can load it. A private one is only
+		readable by those who can read the User, so a copy is attached to the Raven User instead,
+		which every Raven user can read. Frappe makes that copy by fetching the file's full URL.
 		"""
 		user_image = frappe.db.get_value("User", self.user, "user_image")
+		if self.user_image or not isinstance(user_image, str):
+			return
 
-		if isinstance(user_image, str) and user_image.startswith("/"):
+		if user_image.startswith("/files/"):
+			self.user_image = user_image
+			return
+
+		if user_image.startswith("/"):
 			user_image = get_url(user_image)
 
 		try:
@@ -180,52 +208,51 @@ def add_user_to_raven(doc, method):
 	# Else, check if the user has a Raven User role. If yes, then create a Raven User record for the user if not already created.
 
 	# If the user is already added to Raven, do nothing.
-	if not doc.flags.deleting_raven_user:
-		if frappe.db.exists("Raven User", {"user": doc.name}):
-			# Check if the role is still present. If not, then inactivate the Raven User record.
-			has_raven_role = False
-			for role in doc.get("roles"):
-				if role.role == "Raven User":
-					has_raven_role = True
-					break
+	if frappe.db.exists("Raven User", {"user": doc.name}):
+		# Check if the role is still present. If not, then inactivate the Raven User record.
+		has_raven_role = False
+		for role in doc.get("roles"):
+			if role.role == "Raven User":
+				has_raven_role = True
+				break
 
-			if has_raven_role:
-				raven_user = frappe.get_doc("Raven User", {"user": doc.name})
-				if not raven_user.full_name:
-					raven_user.full_name = doc.full_name or doc.first_name
+		if has_raven_role:
+			raven_user = frappe.get_doc("Raven User", {"user": doc.name})
+			if not raven_user.full_name:
+				raven_user.full_name = doc.full_name or doc.first_name
 
-				if not raven_user.first_name:
-					raven_user.first_name = doc.first_name
-				raven_user.enabled = doc.enabled
-				raven_user.save(ignore_permissions=True)
-			else:
-				raven_user = frappe.get_doc("Raven User", {"user": doc.name})
-				if not raven_user.full_name:
-					raven_user.full_name = doc.full_name or doc.first_name
-
-				if not raven_user.first_name:
-					raven_user.first_name = doc.first_name
-				raven_user.enabled = 0
-				raven_user.save(ignore_permissions=True)
+			if not raven_user.first_name:
+				raven_user.first_name = doc.first_name
+			raven_user.enabled = doc.enabled
+			raven_user.save(ignore_permissions=True)
 		else:
-			# Raven user does not exist.
-			# Only create raven user if it exists in the system.
-			if frappe.db.exists("User", doc.name):
-				# Check if the user is a system user.
-				auto_add = False
-				if doc.user_type == "System User":
-					auto_add = frappe.db.get_single_value("Raven Settings", "auto_add_system_users")
+			raven_user = frappe.get_doc("Raven User", {"user": doc.name})
+			if not raven_user.full_name:
+				raven_user.full_name = doc.full_name or doc.first_name
 
-				if auto_add or "Raven User" in [d.role for d in doc.get("roles")]:
-					doc.append("roles", {"role": "Raven User"})
-					# Create a Raven User record for the user.
-					raven_user = frappe.new_doc("Raven User")
-					raven_user.user = doc.name
-					raven_user.full_name = doc.full_name or doc.first_name
-					raven_user.first_name = doc.first_name
-					raven_user.contact_number = doc.mobile_no
-					raven_user.enabled = doc.enabled
-					raven_user.insert(ignore_permissions=True)
+			if not raven_user.first_name:
+				raven_user.first_name = doc.first_name
+			raven_user.enabled = 0
+			raven_user.save(ignore_permissions=True)
+	else:
+		# Raven user does not exist.
+		# Only create raven user if it exists in the system.
+		if frappe.db.exists("User", doc.name):
+			# Check if the user is a system user.
+			auto_add = False
+			if doc.user_type == "System User":
+				auto_add = frappe.db.get_single_value("Raven Settings", "auto_add_system_users")
+
+			if auto_add or "Raven User" in [d.role for d in doc.get("roles")]:
+				doc.append("roles", {"role": "Raven User"})
+				# Create a Raven User record for the user.
+				raven_user = frappe.new_doc("Raven User")
+				raven_user.user = doc.name
+				raven_user.full_name = doc.full_name or doc.first_name
+				raven_user.first_name = doc.first_name
+				raven_user.contact_number = doc.mobile_no
+				raven_user.enabled = doc.enabled
+				raven_user.insert(ignore_permissions=True)
 
 
 def remove_user_from_raven(doc, method):
@@ -233,4 +260,65 @@ def remove_user_from_raven(doc, method):
 	# If the user is deleted, then delete the Raven User record for the user.
 	if frappe.db.exists("Raven User", {"user": doc.name}):
 		raven_user = frappe.get_doc("Raven User", {"user": doc.name})
+		raven_user.flags.user_being_deleted = True
 		raven_user.delete(ignore_permissions=True)
+
+
+def rename_raven_user(doc, method=None, old=None, new=None, merge=False):
+	"""
+	A User's ID changed. The Raven User is named after it, so it is renamed too, which
+	updates every Link to it. The IDs Raven keeps as text are rewritten in a background
+	job: that touches the whole messages table, which must not hold up the rename.
+	Frappe itself rewrites owner and modified_by everywhere, the same way.
+	"""
+	if not old or not new or not frappe.db.exists("Raven User", old):
+		return
+	if not frappe.db.exists("Raven User", new):
+		# The User rename already passed its own permission check.
+		rename_doc("Raven User", old, new, force=True, ignore_permissions=True, show_alert=False)
+
+	# Cached member lists still name the old ID. One call for all of them: a user can be on
+	# thousands of threads, and no membership changed, so nothing needs broadcasting.
+	delete_member_caches(
+		frappe.get_all("Raven Channel Member", filters={"user_id": new}, pluck="channel_id"),
+		frappe.get_all("Raven Workspace Member", filters={"user": new}, pluck="workspace"),
+	)
+	frappe.get_doc("Raven User", new).invalidate_user_list_cache()
+
+	frappe.enqueue(
+		rewrite_user_id_in_messages,
+		old=old,
+		new=new,
+		queue="long",
+		timeout=36000,
+		enqueue_after_commit=True,
+	)
+
+
+def rewrite_user_id_in_messages(old: str, new: str):
+	"""
+	Mentions keep the user ID as plain text, and a message's reactions and likes keep user
+	lists inside JSON, so none of them follow a rename. Reactions are rewritten only on the
+	messages the user reacted to, found through the reaction rows.
+	"""
+	mention = frappe.qb.DocType("Raven Mention")
+	frappe.qb.update(mention).set(mention.user, new).where(mention.user == old).run()
+
+	# The IDs sit quoted inside JSON, so the quoted form is what is replaced.
+	quoted_old, quoted_new = json.dumps(old), json.dumps(new)
+	message = frappe.qb.DocType("Raven Message")
+	reacted = frappe.get_all(
+		"Raven Message Reaction", filters={"owner": ("in", [old, new])}, pluck="message", distinct=True
+	)
+	if reacted:
+		(
+			frappe.qb.update(message)
+			.set(message.message_reactions, Replace(message.message_reactions, quoted_old, quoted_new))
+			.where(message.name.isin(reacted))
+		).run()
+	liked_by = message._liked_by
+	(
+		frappe.qb.update(message)
+		.set(liked_by, Replace(liked_by, quoted_old, quoted_new))
+		.where(liked_by.like(f"%{quoted_old}%"))
+	).run()

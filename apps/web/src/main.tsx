@@ -4,7 +4,6 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { ThemeProvider } from "./components/theme-provider"
-import { initializeLanguage } from "@lib/language"
 
 scan({
   enabled: true,
@@ -12,6 +11,19 @@ scan({
 
 
 import { initPushNotifications, isStandalone } from "@lib/push";
+import { initializeLanguage } from "@lib/language";
+
+const render = () => {
+  // After boot lands: the push config (firebase_client_config) comes from it.
+  initPushNotifications()
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
+    </StrictMode>,
+  )
+}
 
 if (import.meta.env.DEV) {
   fetch('/api/method/raven.www.raven.get_context_for_dev', {
@@ -22,18 +34,9 @@ if (import.meta.env.DEV) {
       const v = JSON.parse(values.message)
       if (!window.frappe) window.frappe = {};
       window.frappe.boot = v
-      initializeLanguage()
-      // After boot lands — push config (firebase_client_config) comes from it
-      initPushNotifications()
-      createRoot(document.getElementById('root')!).render(
-        <StrictMode>
-          <ThemeProvider>
-            <App />
-          </ThemeProvider>
-        </StrictMode>,
-      )
-    }
-    )
+      return initializeLanguage(v)
+    })
+    .then(render)
 } else {
   // Boot is inlined by the Jinja entry template. An OFFLINE (app-shell) load
   // serves the BUILT index.html from the service worker's cache instead — its
@@ -46,7 +49,6 @@ if (import.meta.env.DEV) {
       if (cached) {
         if (!window.frappe) window.frappe = {}
         window.frappe.boot = JSON.parse(cached)
-        window.frappe._messages = window.frappe.boot["__messages"]
       }
     } catch {
       // No usable cached boot — the shell still renders; boot readers degrade.
@@ -63,13 +65,8 @@ if (import.meta.env.DEV) {
       }
     }, 3000)
   }
-  initializeLanguage()
-  initPushNotifications()
-  createRoot(document.getElementById('root')!).render(
-    <StrictMode>
-      <ThemeProvider>
-        <App />
-      </ThemeProvider>
-    </StrictMode>,
-  )
+  // Frappe 15 and 16 put the translations in the boot; develop serves them separately. Either
+  // way they are in place before the first render, so nothing shows in English first.
+  const boot = window.frappe?.boot
+  void (boot ? initializeLanguage(boot) : Promise.resolve()).then(render)
 }

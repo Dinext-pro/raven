@@ -23,7 +23,9 @@ const MessageStream = ({ channelID }) => {
       fetcher(key).then((data) => next(null, data));
 
       if (channelID) {
-        frappe.socketio.doc_subscribe("Raven Channel", channelID);
+        // Desk can subscribe to its form immediately before opening the chat.
+        // Send the channel subscription independently of the form's throttle.
+        frappe.socketio.emit("doc_subscribe", "Raven Channel", channelID);
         frappe.socketio.doc_open("Raven Channel", channelID)
         frappe.realtime.on("message_updated", (event) => {
           if (event.channel_id !== channelID) return
