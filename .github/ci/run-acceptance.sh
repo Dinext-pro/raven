@@ -102,6 +102,14 @@ frappe.connect()
 for app_name in ("frappe", "erpnext"):
     enable_setup_wizard_complete(app_name)
 frappe.db.set_single_value("System Settings", "setup_complete", 1)
+
+# The overlay scenarios create standard ERPNext Tasks as these users.
+for email in ("cypress.raven.member@example.com", "cypress.raven.peer@example.com"):
+    user = frappe.get_doc("User", email) if frappe.db.exists("User", email) else frappe.get_doc({
+        "doctype": "User", "email": email, "first_name": "Raven Cypress User",
+        "user_type": "System User", "send_welcome_email": 0, "language": "ru",
+    }).insert()
+    user.add_roles("Projects User")
 frappe.db.commit()
 frappe.clear_cache()
 frappe.destroy()
